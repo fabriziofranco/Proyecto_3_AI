@@ -101,10 +101,13 @@ int main(){
     //     cout<<"Weight"<<i<<":\n"<<mlp.weights(i);
     // }
     rowvec input(5, fill::randu);
-    mlp.forward_propagation(input).print("output: ");
+    // mlp.forward_propagation(input).print("output: ");
     // mat pesos(5,3, fill::randu);
     // colvec bias(3, fill::randu);
-    // input.print("input:");
+    input.print("input:");
+    input = 1/ input;
+    input.print("input:");
+
     // pesos.print("pesos:");
     // bias.print("Bias:");
     // mat c = input*pesos + bias.t();
