@@ -5,6 +5,7 @@
 #include <vector>
 #include <armadillo>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 using namespace arma;
@@ -17,13 +18,14 @@ class NeuralNetwork {
         int output_length;
         field<colvec> bias;
         field<mat> weights;
-        string activation_function="sigm";
+        string activation_function;
 public:
 
-    NeuralNetwork(int input_length, int n_hidden_layers, vector<int> neurons_per_layer, int output_length) {
+    NeuralNetwork(int input_length, int n_hidden_layers, vector<int> neurons_per_layer, int output_length, string activation_function="sigm") {
         this->input_length = input_length;
         this->n_hidden_layers = n_hidden_layers;
         this->output_length = output_length;
+        this->activation_function = activation_function;
         
         bias = field<colvec>(n_hidden_layers+1);
         weights = field<mat>(n_hidden_layers+1);
@@ -50,12 +52,16 @@ public:
         return output;
     }
 
-    rowvec tanh(rowvec z){
-        return z;
+    rowvec tanh(rowvec input){
+        rowvec output = (2 / (1+exp(-input*2))) - 1;
+        return output;
     }
 
-    rowvec relu(rowvec z){
-        return z;
+    rowvec relu(rowvec input){
+        rowvec output = input;
+        for(int i=0; i < output.n_elem; i++)
+            if (output(i) < 0) output(i) = 0;
+        return output;
     }
 
 
@@ -69,9 +75,7 @@ public:
         else{
             return relu(input);
         }
-
     }
-
 
     colvec forward_propagation(rowvec input) {
         colvec neths;
@@ -81,7 +85,7 @@ public:
         return input.t();
     }
 
-    void propagate_backward() {
+    void propagate_backward(colvec output) {
 
     }
 
@@ -95,17 +99,17 @@ int main(){
 
     arma_rng::set_seed(42);
     vector<int> capas{3, 2, 3, 2};
-    NeuralNetwork mlp(5, 4, capas, 7);
+    NeuralNetwork mlp(5, 4, capas, 7, "tanh");
 
     // for(int i=0; i<mlp.weights.n_elem;i++){
     //     cout<<"Weight"<<i<<":\n"<<mlp.weights(i);
     // }
     rowvec input(5, fill::randu);
-    // mlp.forward_propagation(input).print("output: ");
+    mlp.forward_propagation(input).print("output: ");
     // mat pesos(5,3, fill::randu);
     // colvec bias(3, fill::randu);
     input.print("input:");
-    input = 1/ input;
+    // input = max(0,input)
     input.print("input:");
 
     // pesos.print("pesos:");
