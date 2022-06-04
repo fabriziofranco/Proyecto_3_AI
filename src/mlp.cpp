@@ -41,7 +41,6 @@ private:
         return output;
     }
 
-
     rowvec softmax(rowvec input) {
         double max_z = sum(input);
         rowvec output  = exp(input + max_z);
@@ -100,6 +99,12 @@ private:
         update_weights();
     }
 
+    rowvec one_hot_encoder(int category, int total_categories){
+        rowvec encoder(total_categories,fill::zeros);
+        encoder(category-1) = 1;
+        return encoder;
+    }
+
 public:
 
     NeuralNetwork(int input_length, int n_hidden_layers, vector<int> neurons_per_layer, int output_length, string activation_function="sigm") {
@@ -140,7 +145,6 @@ public:
     }
 
 };
-
 
 
 
