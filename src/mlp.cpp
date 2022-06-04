@@ -17,6 +17,8 @@ class NeuralNetwork {
         int n_hidden_layers;
         int output_length;
         field<colvec> bias;
+        field<rowvec> neurons_outputs;
+        field<rowvec> deltas;
         field<mat> weights;
         string activation_function;
 public:
@@ -28,6 +30,8 @@ public:
         this->activation_function = activation_function;
         
         bias = field<colvec>(n_hidden_layers+1);
+        neurons_outputs = field<rowvec>(n_hidden_layers+1);
+        deltas = field<rowvec>(n_hidden_layers+1);
         weights = field<mat>(n_hidden_layers+1);
         
 
@@ -65,35 +69,68 @@ public:
     }
 
 
-    rowvec apply_activation_function(rowvec input) {
-        if (this->activation_function == "sigm"){
-            return sigm(input);
-        }
-        else if(this->activation_function == "tanh"){
-            return tanh(input);
+    rowvec softmax(rowvec input) {
+        double max_z = sum(input);
+        rowvec output  = exp(input + max_z);
+        output = output / sum(output);
+        return output;
+    }
+
+    rowvec apply_activation_function(rowvec input, int index) {
+        if (index == n_hidden_layers){
+            return softmax(input);
         }
         else{
-            return relu(input);
+            if (this->activation_function == "sigm"){
+                return sigm(input);
+            }
+            else if(this->activation_function == "tanh"){
+                return tanh(input);
+            }
+            else{
+                return relu(input);
+            }
         }
+
     }
 
     colvec forward_propagation(rowvec input) {
         colvec neths;
         for(int i = 0; i<=n_hidden_layers;i++){
-            input = apply_activation_function(input*weights(i) + bias(i).t());
+            input = apply_activation_function(input*weights(i) + bias(i).t(), i);
+            neurons_outputs(i) = input;
         }
         return input.t();
     }
 
-    void propagate_backward(colvec output) {
-
+    void fill_deltas(colvec output){
+        deltas(n_hidden_layers) = (neurons_outputs(n_hidden_layers) - output.t());//*(neurons_outputs(n_hidden_layers).t());
+        // neurons_outputs(n_hidden_layers).print();
+        // output.t().print();
+        // (neurons_outputs(n_hidden_layers)-output.t()).print();
+        // for(int i = n_hidden_layers-1; i >= 0; --i){
+        //    deltas(i) = deltas(i+1) * weights(i+1).t();
+        // }
     }
 
-    // void learn_image() {
+    void print_deltas(){
+        for(int i = 0; i < n_hidden_layers+1; ++i) deltas(i).print();
+    }
 
-    // }
+    void update_weights(){
+        // TO DO
+    }
+
+    void propagate_backward(colvec output) {
+        fill_deltas(output);
+        print_deltas();
+        update_weights();
+    }
 
 };
+
+
+
 
 int main(){
 
@@ -105,12 +142,17 @@ int main(){
     //     cout<<"Weight"<<i<<":\n"<<mlp.weights(i);
     // }
     rowvec input(5, fill::randu);
-    mlp.forward_propagation(input).print("output: ");
+    input = softmax(input);
+    input.print();
+    // auto x = mlp.forward_propagation(input);
+    // // x.print("Resultado forward:");
+    // mlp.propagate_backward(x*1.2324);
+
     // mat pesos(5,3, fill::randu);
     // colvec bias(3, fill::randu);
-    input.print("input:");
+    //input.print("input:");
     // input = max(0,input)
-    input.print("input:");
+    // input.print("input:");
 
     // pesos.print("pesos:");
     // bias.print("Bias:");
