@@ -135,8 +135,8 @@ public:
         update_biases();
     }
 
-    rowvec one_hot_encoder(int category, int total_categories){
-        rowvec encoder(total_categories,fill::zeros);
+    mat one_hot_encoder(int category){
+        mat encoder(output_length,fill::zeros);
         encoder(category-1) = 1;
         return encoder;
     }
@@ -175,7 +175,7 @@ public:
         }
     }
 
-    double fit(field<rowvec> X_train, field<rowvec> Y_train, double alpha, int epochs){
+    double fit(field<rowvec> X_train, rowvec Y_train, double alpha, int epochs){
         this->scalar_rate = alpha;
         for(int i = 0; i <epochs;i++){
            for(int i = 0; i < size(X_train); ++i){
@@ -186,7 +186,8 @@ public:
         return 0;
     }
 
-    double predict(field<rowvec> X_test, field<rowvec> Y_test){
+    double predict(field<rowvec> X_test, rowvec Y_test){
+        auto Y_test_one_hot_encoded = Y_
         field<rowvec> Y_pred = field<rowvec>(size(Y_test));
         for(int i = 0; i < size(X_test); ++i){
             Y_pred[i] = forward_propagation(X_test[i]);
