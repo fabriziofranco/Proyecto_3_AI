@@ -110,26 +110,32 @@ private:
 public:
 
     mat forward_propagation(mat input) {
+        mat input_iter = input;
         for(int i = 0; i<=n_hidden_layers;i++){
-            input = input * weights(i);
-            for (int row = 0 ; row < input.n_rows;row++){
-                input.row(row) = input.row(row)  + bias(i);
+            input_iter.print("Inp: ");
+            weights(i).print("W: ");
+            input_iter = input_iter * weights(i);
+            input_iter.print("Inp: ");
+            cout<<"------------------------------------------------------\n\n";
+            for (int row = 0 ; row < input_iter.n_rows;row++){
+                input_iter.row(row) = input_iter.row(row)  + bias(i);
             }
-            cout<<size(input)<<" ";
-            neths(i) = input;
-            input = apply_activation_function(input, i);
-            neurons_activated_outputs(i) = input;
+            neths(i) = input_iter;
+            //input_iter = apply_activation_function(input_iter, i);
+            neurons_activated_outputs(i) = input_iter;
         }
-
-        return input;
+        input_iter.print("Inp: ");
+        return input_iter;
     }
 
     void propagate_backward(mat input, mat y) {
         mat dLastLayer  = neurons_activated_outputs(n_hidden_layers) - y;
 
+
         deltas(n_hidden_layers) = dLastLayer;
 
         dLastLayer = neurons_activated_outputs(n_hidden_layers - 1).t() *  dLastLayer;
+        // dLastLayer.print();
         d_weights(n_hidden_layers) = dLastLayer;
         
         for(int i = n_hidden_layers-1; i>=0;i--){
@@ -148,8 +154,8 @@ public:
     }
 
     mat from_field_to_mat(field<rowvec> subset){
-        mat mat_subset(,subset.n_elem,fill::zeros);
-        for(int i=mat_subset.n_rows;i++){
+        mat mat_subset(subset.n_elem, subset(0).n_elem, fill::zeros);
+        for(int i=0; i < mat_subset.n_rows;i++){
             mat_subset.row(i) = subset(i);
         }
         return mat_subset;
@@ -193,12 +199,11 @@ public:
         this-> batch_size = size(X_train)[0];
         this->scalar_rate = learning_rate;
 
-        auto X_matrix = from_field_to_mat(X_test);
-        auto Y_matrix = from_field_to_mat(Y_test);
-
+        auto X_matrix = from_field_to_mat(X_train);
+        auto Y_matrix = from_field_to_mat(Y_train);
         for(int i = 0; i <epochs;i++){
-            auto output = forward_propagation(X_matrix, Y_matrix);
-            propagate_backward(X_matrix, output);
+            auto output = forward_propagation(X_matrix);
+            // propagate_backward(X_matrix, Y_matrix);
         } 
         return 0;
     }
@@ -210,7 +215,6 @@ public:
         Y_matrix.print();
         return 0;
     }
-
 };
 
 
@@ -218,17 +222,19 @@ public:
 int main(){
     arma_rng::set_seed(42);
 
-    auto data = Parser::get_data(cortes=6);
-
+    auto data = Parser::get_data(6, 10, 0.01, 0.1);
     auto X_train = data["X_train"]; auto y_train = data["y_train"];
     auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
     auto X_test = data["X_test"]; auto y_test = data["y_test"];
 
     vector<int> capas{3, 2, 3, 2};
-    NeuralNetwork mlp(5, 4, capas, 7, "sigm");
-
-    mlp.fit(X_train,y_train, X_validation, y_validation, learning_rate=0.01, epochs=20);
-    mlp.predict(X_test,y_test);
+    NeuralNetwork mlp(200, 4, capas, 10, "relu");
+    // mlp.weights.print();
+    // mlp.forward_propagation(mat(5,4,fill::randu)).print();
+    mlp.fit(X_train,y_train, X_validation, y_validation, 0.1, 1);
+    // X_train.print();
+    // mlp.d_weights.print();
+    // mlp.predict(X_test,y_test);
 
     return 0;
 }
