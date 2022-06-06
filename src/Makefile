@@ -1,7 +1,7 @@
 all: run clean P
 
 run:
-	g++ mlp.cpp -std=c++17 -o mlp.out -larmadillo
+	g++ mlp.cpp -std=c++17 -o mlp.out -larmadillo -lstdc++fs
 	./mlp.out
 
 clean:

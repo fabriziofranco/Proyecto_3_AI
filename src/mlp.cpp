@@ -7,7 +7,7 @@
 #include <string>
 #include <algorithm>
 #include <filesystem>
-
+#include "parser.cpp"
 using namespace std;
 using namespace arma;
 
@@ -16,41 +16,48 @@ class NeuralNetwork {
     public:
         int input_length;
         int n_hidden_layers;
+        int batch_size=64;
         int output_length;
-        double scalar_rate;
+        double scalar_rate=0.01;
         field<rowvec> bias;
-        field<rowvec> neths, neurons_activated_outputs;
-        field<rowvec> deltas;
+        field<mat> neths, neurons_activated_outputs;
+        field<mat> deltas;
         field<mat> weights, d_weights;
         string activation_function;
 
 private:
 
-    rowvec sigm(rowvec input){
-        rowvec output = 1 / (1+exp(-input));
+    mat sigm(mat input){
+        mat output = 1 / (1+exp(-input));
         return output;
     }
 
-    rowvec tanh(rowvec input){
-        rowvec output = (2 / (1+exp(-input*2))) - 1;
+    mat tanh(mat input){
+        mat output = (2 / (1+exp(-input*2))) - 1;
         return output;
     }
 
-    rowvec relu(rowvec input){
-        rowvec output = input;
-        for(int i=0; i < output.n_elem; i++)
-            if (output(i) < 0) output(i) = 0;
+    mat relu(mat input){
+        mat output = input;
+        for(int i=0; i < size(output)[0]; i++)
+            for(int j=0; j < size(output)[1]; j++)
+                if (output(i,j) < 0) output(i,j) = 0;
         return output;
     }
 
-    rowvec softmax(rowvec input) {
-        double max_z = sum(input);
-        rowvec output  = exp(input + max_z);
-        output = output / sum(output);
+    mat softmax(mat input) {
+        double max_z;
+        mat output=input;
+
+        for(int i=0; i < input.n_rows; i++){
+            max_z = sum(input.row(i));
+            output.row(i)  = exp(input.row(i) + max_z);
+            output.row(i) = output.row(i) / sum(output.row(i));
+        }
         return output;
     }
 
-    rowvec apply_activation_function(rowvec input, int index) {
+    mat apply_activation_function(mat input, int index) {
         if (index == n_hidden_layers){
             return softmax(input);
         }
@@ -67,78 +74,85 @@ private:
         }
     }
 
-    rowvec apply_derivated_activation_function(rowvec input) {
+    mat apply_derivated_activation_function(mat input) {
         if (this->activation_function == "sigm"){
-            return sigm(input) * (1- sigm(input));
+            return sigm(input) % (1 - sigm(input));
         }
         else if(this->activation_function == "tanh"){
-            rowvec output =  tanh(input);
-            for(int i=0; i < output.n_elem; i++)
-                output(i) = 1 - output(i) * output(i);
+            mat output =  tanh(input);
+            output = 1 -  output % output;
             return output;
-
         }
         else{
-            rowvec output = input;
-            for(int i=0; i < output.n_elem; i++)
-                if (output(i) > 0)
-                    output(i) = 1;
-                else
-                    output(i) = 0;
+            mat output = input;
+            for(int i=0; i < size(output)[0]; i++)
+                for(int j=0; j < size(output)[1]; j++)
+                    if (output(i,j) < 0) output(i,j) = 0;
+                    else output(i,j) = 1;
             return output;
         }
     }
 
+    void update_weights_and_biases(){
+        for(int i = 0; i <= n_hidden_layers; ++i){
+            weights(i) = weights(i) - d_weights(i)*scalar_rate;
+
+            rowvec delta_rows(deltas(i).n_cols,fill::zeros);
+            
+            for(int j = 0; j < deltas(i).n_cols; j++){
+                delta_rows(j) = sum(deltas(i).col(j))/ batch_size;
+            }
+            bias(i) = bias(i) - delta_rows * scalar_rate;
+        }
+    }
+
+
 public:
-    rowvec forward_propagation(rowvec input) {
+
+    mat forward_propagation(mat input) {
         for(int i = 0; i<=n_hidden_layers;i++){
-            input = input * weights(i) + bias(i);
-            cout<<size(input);
+            input = input * weights(i);
+            for (int row = 0 ; row < input.n_rows;row++){
+                input.row(row) = input.row(row)  + bias(i);
+            }
+            cout<<size(input)<<" ";
             neths(i) = input;
             input = apply_activation_function(input, i);
             neurons_activated_outputs(i) = input;
         }
+
         return input;
     }
 
-    void update_weights(){
-        for(int i = 0; i < size(weights); ++i){
-            weights(i) = weights(i) - d_weights(i)*scalar_rate;
-        }
-    }
-
-    void update_biases(){
-        for(int i = 0; i < size(bias); ++i){
-            bias(i) = bias(i) - deltas(i)*scalar_rate;
-        }
-    }
-
-    void propagate_backward(rowvec input, rowvec y) {
-
+    void propagate_backward(mat input, mat y) {
         mat dLastLayer  = neurons_activated_outputs(n_hidden_layers) - y;
+
         deltas(n_hidden_layers) = dLastLayer;
+
         dLastLayer = neurons_activated_outputs(n_hidden_layers - 1).t() *  dLastLayer;
         d_weights(n_hidden_layers) = dLastLayer;
         
         for(int i = n_hidden_layers-1; i>=0;i--){
             dLastLayer = deltas(i+1)*weights(i+1).t();
-            deltas(i) = dLastLayer % apply_derivated_activation_function(neurons_activated_outputs(i));
+            dLastLayer = dLastLayer % apply_derivated_activation_function(neurons_activated_outputs(i));
+            deltas(i) = dLastLayer;
             if (i==0){
-                dLastLayer = input.t() *dLastLayer;
+                dLastLayer = input.t() * dLastLayer;
             }
             else{
-                dLastLayer = neurons_activated_outputs(i - 1).t() *dLastLayer;
+                dLastLayer = neurons_activated_outputs(i - 1).t() * dLastLayer;
             }
             d_weights(i) = dLastLayer;
         }
-        update_weights();
-        update_biases();
+        update_weights_and_biases();
     }
 
-    mat one_hot_encoder(int category){
-        mat encoder(output_length,fill::zeros);
-        encoder(category-1) = 1;
-        return encoder;
+    mat from_field_to_mat(field<rowvec> subset){
+        mat mat_subset(,subset.n_elem,fill::zeros);
+        for(int i=mat_subset.n_rows;i++){
+            mat_subset.row(i) = subset(i);
+        }
+        return mat_subset;
     }
 
 public:
@@ -152,10 +166,10 @@ public:
         this->scalar_rate = scalar_rate;
         
         bias = field<rowvec>(n_hidden_layers+1);
-        neths = field<rowvec>(n_hidden_layers+1);
-        neurons_activated_outputs = field<rowvec>(n_hidden_layers+1);
+        neths = field<mat>(n_hidden_layers+1);
+        neurons_activated_outputs = field<mat>(n_hidden_layers+1);
         d_weights = field<mat>(n_hidden_layers+1);
-        deltas = field<rowvec>(n_hidden_layers+1);
+        deltas = field<mat>(n_hidden_layers+1);
         weights = field<mat>(n_hidden_layers+1);
         
 
@@ -175,23 +189,25 @@ public:
         }
     }
 
-    double fit(field<rowvec> X_train, rowvec Y_train, double alpha, int epochs){
-        this->scalar_rate = alpha;
+    double fit(field<rowvec> X_train, field<rowvec> Y_train, field<rowvec> X_validation, field<rowvec> Y_validation, double learning_rate, int epochs){
+        this-> batch_size = size(X_train)[0];
+        this->scalar_rate = learning_rate;
+
+        auto X_matrix = from_field_to_mat(X_test);
+        auto Y_matrix = from_field_to_mat(Y_test);
+
         for(int i = 0; i <epochs;i++){
-           for(int i = 0; i < size(X_train); ++i){
-            auto output = forward_propagation(X_train[i]);
-            propagate_backward(X_train[i], Y_train[i]);
+            auto output = forward_propagation(X_matrix, Y_matrix);
+            propagate_backward(X_matrix, output);
         } 
-        }
         return 0;
     }
 
-    double predict(field<rowvec> X_test, rowvec Y_test){
-        auto Y_test_one_hot_encoded = Y_
-        field<rowvec> Y_pred = field<rowvec>(size(Y_test));
-        for(int i = 0; i < size(X_test); ++i){
-            Y_pred[i] = forward_propagation(X_test[i]);
-        }
+    double predict(field<rowvec> X_test, field<rowvec> Y_test){
+        auto X_matrix = from_field_to_mat(X_test);
+        auto Y_matrix = from_field_to_mat(Y_test);
+        forward_propagation(X_matrix).print();
+        Y_matrix.print();
         return 0;
     }
 
@@ -201,29 +217,18 @@ public:
 
 int main(){
     arma_rng::set_seed(42);
+
+    auto data = Parser::get_data(cortes=6);
+
+    auto X_train = data["X_train"]; auto y_train = data["y_train"];
+    auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
+    auto X_test = data["X_test"]; auto y_test = data["y_test"];
+
     vector<int> capas{3, 2, 3, 2};
-    NeuralNetwork mlp(5, 4, capas, 7, "tanh");
-    // for(int i=0; i<mlp.weights.n_elem;i++){
-    //     cout<<"Weight"<<i<<":\n"<<mlp.weights(i);
-    // }
-    rowvec input(5, fill::randu);
-    // input = softmax(input);
-    // input.print();
-    auto x = mlp.forward_propagation(input);
-    x.print("Resultado forward:");
-    mlp.propagate_backward(input, x*1.2324);
+    NeuralNetwork mlp(5, 4, capas, 7, "sigm");
 
-    for(int i = 0; i < mlp.deltas.n_elem;i++)
-        cout<<size(mlp.deltas[i])<<" ";
-    cout<<endl;
+    mlp.fit(X_train,y_train, X_validation, y_validation, learning_rate=0.01, epochs=20);
+    mlp.predict(X_test,y_test);
 
-
-    for(int i = 0; i < mlp.weights.n_elem;i++)
-        cout<<size(mlp.weights[i])<<" ";
-    cout<<endl;
-
-    for(int i = 0; i < mlp.d_weights.n_elem;i++)
-        cout<<size(mlp.d_weights[i])<<" ";
-    cout<<endl;
     return 0;
 }
