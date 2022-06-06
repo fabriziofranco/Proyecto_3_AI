@@ -179,22 +179,22 @@ public:
 
         for (int i = 0; i <= n_hidden_layers; i++){
             if(i==0){       
-                weights(i) = randn(input_length,neurons_per_layer[i]);
-                bias(i) = randn(1,neurons_per_layer[i]);
+                weights(i) = randu(input_length,neurons_per_layer[i]);
+                bias(i) = randu(1,neurons_per_layer[i]);
                 // weights(i) = mat(input_length, neurons_per_layer[i],fill::randu);
                 // bias(i) = rowvec(neurons_per_layer[i], fill::randu);
             }
             else if(i<n_hidden_layers){
                 // weights(i) = randn(neurons_per_layer[i-1], neurons_per_layer[i]);
                 weights(i) = mat(neurons_per_layer[i-1], neurons_per_layer[i],fill::randu);
-                bias(i) = randn(1,neurons_per_layer[i]);
+                bias(i) = randu(1,neurons_per_layer[i]);
                 // weights(i) = mat(neurons_per_layer[i-1], neurons_per_layer[i],fill::randu);
                 // bias(i) = rowvec(neurons_per_layer[i], fill::randu);
             }
             else{
-                weights(i) = randn(neurons_per_layer[i-1], output_length);
+                weights(i) = randu(neurons_per_layer[i-1], output_length);
                 // weights(i) = mat(neurons_per_layer[i-1], output_length,fill::randu);
-                bias(i) = randn(1,output_length);
+                bias(i) = randu(1,output_length);
                 // weights(i) = mat(neurons_per_layer[i-1], output_length,fill::randu);
                 // bias(i) = rowvec(output_length, fill::randu);
             }    
