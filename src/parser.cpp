@@ -80,7 +80,6 @@ public:
         i=0;
 
         auto rng = std::default_random_engine {};
-        rng.seed(42);
 
         std::shuffle(std::begin(file_names), std::end(file_names), rng);
 
