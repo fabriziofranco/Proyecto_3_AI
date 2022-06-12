@@ -144,9 +144,9 @@ public:
         for(int i = 0; i<=n_hidden_layers;i++){
             input_iter = input_iter * weights(i);
 
-            // for (int row = 0 ; row < input_iter.n_rows;row++){
-            //     input_iter.row(row) = input_iter.row(row)  + bias(i);
-            // }
+            for (int row = 0 ; row < input_iter.n_rows;row++){
+                input_iter.row(row) = input_iter.row(row)  + bias(i);
+            }
             neths(i) = input_iter;
             input_iter = apply_activation_function(input_iter, i);
             neurons_activated_outputs(i) = input_iter;
@@ -253,8 +253,9 @@ public:
             if (equal_matrix(prev_result, output)){
                 cout.precision(3);
                 cout.setf(ios::fixed);
+                cout<<"Fit acc: ";
                 print_accuracy(output,Y_matrix);
-                output.raw_print(cout,"Fwd:");
+                // output.raw_print(cout,"Fwd:");
                 return 0;
             }
             propagate_backward(X_matrix, Y_matrix);
@@ -263,16 +264,20 @@ public:
 
         cout.precision(3);
         cout.setf(ios::fixed);
+        cout<<"Fit acc: ";
         print_accuracy(output,Y_matrix);
-        output.raw_print(cout,"Fwd:");
+        // output.raw_print(cout,"Fwd:");
         return 0;
     }
 
     double predict(field<rowvec> X_test, field<rowvec> Y_test){
         auto X_matrix = from_field_to_mat(X_test);
         auto Y_matrix = from_field_to_mat(Y_test);
-        forward_propagation(X_matrix).print();
-        Y_matrix.print();
+        mat output = forward_propagation(X_matrix);
+        cout.precision(3);
+        cout.setf(ios::fixed);
+        cout<<"Predict acc: ";
+        print_accuracy(output,Y_matrix);
         return 0;
     }
 
@@ -282,16 +287,16 @@ public:
 
 int main(){
     arma_rng::set_seed(42);
-    auto data = Parser::get_data(7, 10, 0.1, 0.1);
+    auto data = Parser::get_data(7, 10, 0.8, 0.1);
     auto X_train = data["X_train"]; auto y_train = data["y_train"];
     auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
     auto X_test = data["X_test"]; auto y_test = data["y_test"];
     
-    vector<int> capas{80, 60, 40, 20};
-    NeuralNetwork mlp(100, 4, capas, 10, "tanh");
+    vector<int> capas{70, 40, 10};
+    NeuralNetwork mlp(100, 3, capas, 10, "relu");
     // mlp.weights(3).print();
     // mlp.forward_propagation(mat(10,10,fill::randu)).print();
-    mlp.fit(X_train,y_train, X_validation, y_validation, 0.0001, 100);
-
+    mlp.fit(X_train,y_train, X_validation, y_validation, 0.0001, 5000);
+    mlp.predict(X_test,y_test);
     return 0;
 }
