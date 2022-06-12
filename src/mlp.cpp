@@ -27,6 +27,23 @@ class NeuralNetwork {
 
 private:
 
+    mat avoid_nans(mat m){
+        for(int i=0; i < size(m)[0]; i++)
+            for(int j=0; j < size(m)[1]; j++)
+                if (m(i,j) < 1e-20) m(i,j) = 1e-20;
+        return m;
+    }
+
+    bool equal_matrix(mat matrix1, mat matrix2){
+        rowvec row_1 = matrix1.as_row();
+        rowvec row_2 = matrix2.as_row();
+
+        for(int i=0;i<row_1.n_elem;i++){
+            if (row_1(i) != row_2(i))
+                return false;
+        }
+        return true;
+    }
 
     double generate_random_number(double min, double max){
         return min + (double) (rand()) / ((double)(RAND_MAX/(max-min)));
@@ -35,7 +52,7 @@ private:
     mat fill_mat_with_randoms(mat m){
         for(int i=0; i < size(m)[0]; i++)
             for(int j=0; j < size(m)[1]; j++)
-                m(i,j) = generate_random_number(-5, 5);
+                m(i,j) = generate_random_number(-0.5,0.5);
         return m;
     }
 
@@ -53,7 +70,7 @@ private:
         mat output = input;
         for(int i=0; i < size(output)[0]; i++)
             for(int j=0; j < size(output)[1]; j++)
-                if (output(i,j) < 0) output(i,j) = 0;
+                output(i,j) = max(output(i,j), output(i,j) * 0.1) ;
         return output;
     }
 
@@ -72,47 +89,43 @@ private:
 
     mat apply_activation_function(mat input, int index) {
         if (index == n_hidden_layers){
-            cout.precision(3);
-            cout.setf(ios::fixed);
-            softmax(input).raw_print(cout,"Softmax:");
-            return input;
+            return softmax(input);
         }
         else{
-            if(index%2==0){
-                return relu(input);
+            if (this->activation_function == "sigm")
+                return sigm(input);
+
+            else if(this->activation_function == "tanh"){
+                return tanh(input);
             }
             else{
-                if (this->activation_function == "sigm") return sigm(input);
-                else return tanh(input);
+                return relu(input);
             }
-
         }
     }
 
     mat apply_derivated_activation_function(mat input, int index) {
-        if(index%2 == 0){
-            mat output = input;
-            for(int i=0; i < size(output)[0]; i++)
-                for(int j=0; j < size(output)[1]; j++)
-                    if (output(i,j) < 0) output(i,j) = 0;
-                    else output(i,j) = 1;
+        if (this->activation_function == "sigm"){
+            return sigm(input) % (1 - sigm(input));
+        }
+        else if(this->activation_function == "tanh"){
+            mat output =  tanh(input);
+            output = 1 -  output % output;
             return output;
         }
         else{
-            if (this->activation_function == "sigm"){
-                return sigm(input) % (1 - sigm(input));
-            }
-            else {
-                mat output =  tanh(input);
-                output = 1 -  output % output;
-                return output;
-            }
+            mat output = input;
+            for(int i=0; i < size(output)[0]; i++)
+                for(int j=0; j < size(output)[1]; j++)
+                    if (output(i,j) < 0) output(i,j) = 0.1;
+                    else output(i,j) = 1;
+            return output;
         }
     }
 
-    void update_weights_and_biases(){
+    void update_weights_and_biases(mat input){
         for(int i = 0; i <= n_hidden_layers; ++i){
-            weights(i) = weights(i) - d_weights(i)*scalar_rate;
+            weights(i) = weights(i) - d_weights(i).t()*scalar_rate;
 
             rowvec delta_rows(deltas(i).n_cols,fill::zeros);
             
@@ -138,8 +151,6 @@ public:
             input_iter = apply_activation_function(input_iter, i);
             neurons_activated_outputs(i) = input_iter;
         }
-
-        // input_iter.raw_print(cout,"Inp: ");
         return input_iter;
     }
 
@@ -148,25 +159,26 @@ public:
         mat dLastLayer  = neurons_activated_outputs(n_hidden_layers) - y;
 
         deltas(n_hidden_layers) = dLastLayer;
-        dLastLayer = neurons_activated_outputs(n_hidden_layers - 1).t() *  dLastLayer;
+        dLastLayer = dLastLayer.t() * neurons_activated_outputs(n_hidden_layers - 1);
         d_weights(n_hidden_layers) = dLastLayer;
         
         for(int i = n_hidden_layers-1; i>=0;i--){
             dLastLayer = deltas(i+1)*weights(i+1).t();
             dLastLayer = dLastLayer % apply_derivated_activation_function(neurons_activated_outputs(i), i);
+            // dLastLayer = avoid_nans(dLastLayer);
             deltas(i) = dLastLayer;
             if (i==0){
-                dLastLayer = input.t() * dLastLayer;
+                dLastLayer = dLastLayer.t() * input;
+                // dLastLayer = avoid_nans(dLastLayer);
             }
             else{
-                dLastLayer = neurons_activated_outputs(i - 1).t() * dLastLayer;
+                dLastLayer =  dLastLayer.t() * neurons_activated_outputs(i - 1);
+                // dLastLayer = avoid_nans(dLastLayer);
             }
             d_weights(i) = dLastLayer;
         }
-        update_weights_and_biases();
 
-        // this->weights.print();
-
+        update_weights_and_biases(input);
     }
 
     mat from_field_to_mat(field<rowvec> subset){
@@ -199,36 +211,60 @@ public:
             if(i==0){       
                 weights(i) = randu(input_length,neurons_per_layer[i]);
                 weights(i) = fill_mat_with_randoms(weights(i));
-                bias(i) = randu(1,neurons_per_layer[i]);
-
+                bias(i) = zeros(1,neurons_per_layer[i]);
             }
             else if(i<n_hidden_layers){
                 weights(i) = mat(neurons_per_layer[i-1], neurons_per_layer[i],fill::randu);
                 weights(i) = fill_mat_with_randoms(weights(i));
-                bias(i) = randu(1,neurons_per_layer[i]);
+                bias(i) = zeros(1,neurons_per_layer[i]);
             }
             else{
                 weights(i) = randu(neurons_per_layer[i-1], output_length);
                 weights(i) = fill_mat_with_randoms(weights(i));
-                bias(i) = randu(1,output_length);
-
+                bias(i) = zeros(1,output_length);
             }    
         }
+    }
+
+    void print_accuracy(mat output, mat Y_real){
+        double total  = output.n_rows;
+        double correctas = 0;
+
+        for (int i=0; i<output.n_rows;i++){
+                if (output.row(i).index_max() == Y_real.row(i).index_max()) 
+                    correctas++;
+        }
+        cout<<correctas/total<<endl;
     }
 
     double fit(field<rowvec> X_train, field<rowvec> Y_train, field<rowvec> X_validation, field<rowvec> Y_validation, double learning_rate, int epochs){
         this-> batch_size = size(X_train)[0];
         this->scalar_rate = learning_rate;
         mat output;
-        auto X_matrix = from_field_to_mat(X_train);
-        auto Y_matrix = from_field_to_mat(Y_train);
+        mat X_matrix = from_field_to_mat(X_train);
+        mat Y_matrix = from_field_to_mat(Y_train);
+        mat prev_result= Y_matrix;
+        // Y_matrix.print();
+
         for(int i = 0; i <epochs;i++){
             output = forward_propagation(X_matrix);
+            // deltas.print("Deltas: ");
+
+            if (equal_matrix(prev_result, output)){
+                cout.precision(3);
+                cout.setf(ios::fixed);
+                print_accuracy(output,Y_matrix);
+                output.raw_print(cout,"Fwd:");
+                return 0;
+            }
             propagate_backward(X_matrix, Y_matrix);
+            prev_result= output;
         }
-        // cout.precision(3);
-        // cout.setf(ios::fixed);
-        // output.raw_print(cout,"Output: "); 
+
+        cout.precision(3);
+        cout.setf(ios::fixed);
+        print_accuracy(output,Y_matrix);
+        output.raw_print(cout,"Fwd:");
         return 0;
     }
 
@@ -246,27 +282,16 @@ public:
 
 int main(){
     arma_rng::set_seed(42);
-    auto data = Parser::get_data(7, 10, 0.01, 0.1);
+    auto data = Parser::get_data(7, 10, 0.1, 0.1);
     auto X_train = data["X_train"]; auto y_train = data["y_train"];
     auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
     auto X_test = data["X_test"]; auto y_test = data["y_test"];
-    // for (auto it: y_train) cout<<it<<endl;
-    vector<int> capas{80,60,40,20};
+    
+    vector<int> capas{80, 60, 40, 20};
     NeuralNetwork mlp(100, 4, capas, 10, "tanh");
     // mlp.weights(3).print();
     // mlp.forward_propagation(mat(10,10,fill::randu)).print();
-    mlp.fit(X_train,y_train, X_validation, y_validation, 0.001, 3);
-    // mlp.d_weights.print();
-    // randn(2,3).print();
-    // X_train.print();
-    // mlp.d_weights.print();
-    // mlp.predict(X_test,y_test);*/
-    //for(int i=0;i<10;++i)cout<<generate_random_number(-0.5,0.5)<<"\n";
-    // mat x(5,4, fill::zeros);
-    // mat y(6,3, fill::zeros);
-    // mat z(2,7, fill::zeros);
-    // fill_mat_with_randoms(x).print("x:");
-    // fill_mat_with_randoms(y).print("y:");
-    // fill_mat_with_randoms(z).print("z:");
+    mlp.fit(X_train,y_train, X_validation, y_validation, 0.01, 100);
+
     return 0;
 }
