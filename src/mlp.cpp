@@ -291,7 +291,7 @@ int main(){
     NeuralNetwork mlp(100, 4, capas, 10, "tanh");
     // mlp.weights(3).print();
     // mlp.forward_propagation(mat(10,10,fill::randu)).print();
-    mlp.fit(X_train,y_train, X_validation, y_validation, 0.01, 100);
+    mlp.fit(X_train,y_train, X_validation, y_validation, 0.0001, 100);
 
     return 0;
 }
