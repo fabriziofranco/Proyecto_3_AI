@@ -292,8 +292,8 @@ int main(){
     auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
     auto X_test = data["X_test"]; auto y_test = data["y_test"];
     
-    vector<int> capas{70, 40, 10};
-    NeuralNetwork mlp(100, 3, capas, 10, "relu");
+    vector<int> capas{80, 60, 40, 20};
+    NeuralNetwork mlp(100, 4, capas, 10, "relu");
     // mlp.weights(3).print();
     // mlp.forward_propagation(mat(10,10,fill::randu)).print();
     mlp.fit(X_train,y_train, X_validation, y_validation, 0.0001, 5000);
