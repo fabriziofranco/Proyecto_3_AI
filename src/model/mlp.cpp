@@ -281,8 +281,8 @@ public:
 int main(){
     arma_rng::set_seed(42);
 
-    auto data = Parser_senales::get_data(3, 10, 0.8, 0.1, 5, false);
-    // auto data = Parser_mariposas::get_data(9, 10, 0.8, 0.1, 3, false);
+    // auto data = Parser_senales::get_data(3, 10, 0.8, 0.1, 5, false);
+    auto data = Parser_mariposas::get_data(9, 10, 0.8, 0.1, 3, false);
     // auto data = Parser_BM::get_data(0.8, 0.1);
 
     auto X_train = data["X_train"]; auto y_train = data["y_train"];
@@ -291,9 +291,9 @@ int main(){
     
 
     vector<int> capas{ 160, 80, 30};
-    NeuralNetwork mlp(480, 3, capas, 10, "relu");
+    NeuralNetwork mlp(512, 3, capas, 10, "relu");
 
-    mlp.fit(X_train,y_train, X_validation, y_validation, 5e-6, 0.15, 25000, "gd", "relu_3_capas_gd_senales_transito");
+    mlp.fit(X_train,y_train, X_validation, y_validation, 5e-6, 0.15, 10000, "gd", "relu_3_capas_gd_mariposas");
     // mlp.load_model("relu_3_capas_gd_senales_transito");
 
     // mlp.predict(X_train,y_train,"Train");
