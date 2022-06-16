@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "../parsers/parser_senales.cpp"
+#include "../parsers/parser_mariposas.cpp"
 #include "../parsers/parser_b_m.cpp"
 #include "activation_functions.cpp"
 #include "metrics.cpp"
@@ -281,19 +282,21 @@ int main(){
     arma_rng::set_seed(42);
 
     // auto data = Parser_senales::get_data(3, 10, 0.8, 0.1, 5, false);
-    auto data = Parser_BM::get_data(0.8, 0.1);
+    auto data = Parser_mariposas::get_data(7, 10, 0.8, 0.1, 4, false);
+    // auto data = Parser_BM::get_data(0.8, 0.1);
+
     auto X_train = data["X_train"]; auto y_train = data["y_train"];
     auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
     auto X_test = data["X_test"]; auto y_test = data["y_test"];
 
-    vector<int> capas{ 20, 10, 5};
-    NeuralNetwork mlp(30, 3, capas, 2, "tanh");
-    // mlp.fit(X_train,y_train, X_validation, y_validation, 1e-3, 0.02, 25000, "gd", "tanh_3_capas_normal_b_m");
-    mlp.load_model("tanh_3_capas_normal_b_m");
+    // vector<int> capas{ 20, 10, 5};
+    // NeuralNetwork mlp(30, 3, capas, 2, "tanh");
+    // // mlp.fit(X_train,y_train, X_validation, y_validation, 1e-3, 0.02, 25000, "gd", "tanh_3_capas_normal_b_m");
+    // mlp.load_model("tanh_3_capas_normal_b_m");
 
-    mlp.predict(X_train,y_train,"Train");
-    mlp.predict(X_validation,y_validation,"Validation");
-    mlp.predict(X_test,y_test,"Test");
+    // mlp.predict(X_train,y_train,"Train");
+    // mlp.predict(X_validation,y_validation,"Validation");
+    // mlp.predict(X_test,y_test,"Test");
 
     return 0;
 }
