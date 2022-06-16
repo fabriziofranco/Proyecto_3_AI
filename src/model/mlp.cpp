@@ -281,18 +281,20 @@ public:
 int main(){
     arma_rng::set_seed(42);
 
-    // auto data = Parser_senales::get_data(3, 10, 0.8, 0.1, 5, false);
-    auto data = Parser_mariposas::get_data(7, 10, 0.8, 0.1, 4, false);
+    auto data = Parser_senales::get_data(3, 10, 0.8, 0.1, 5, false);
+    // auto data = Parser_mariposas::get_data(9, 10, 0.8, 0.1, 3, false);
     // auto data = Parser_BM::get_data(0.8, 0.1);
 
     auto X_train = data["X_train"]; auto y_train = data["y_train"];
     auto X_validation = data["X_validation"]; auto y_validation = data["y_validation"];
     auto X_test = data["X_test"]; auto y_test = data["y_test"];
+    
 
-    // vector<int> capas{ 20, 10, 5};
-    // NeuralNetwork mlp(30, 3, capas, 2, "tanh");
-    // // mlp.fit(X_train,y_train, X_validation, y_validation, 1e-3, 0.02, 25000, "gd", "tanh_3_capas_normal_b_m");
-    // mlp.load_model("tanh_3_capas_normal_b_m");
+    vector<int> capas{ 160, 80, 30};
+    NeuralNetwork mlp(480, 3, capas, 10, "relu");
+
+    mlp.fit(X_train,y_train, X_validation, y_validation, 5e-6, 0.15, 25000, "gd", "relu_3_capas_gd_senales_transito");
+    // mlp.load_model("relu_3_capas_gd_senales_transito");
 
     // mlp.predict(X_train,y_train,"Train");
     // mlp.predict(X_validation,y_validation,"Validation");

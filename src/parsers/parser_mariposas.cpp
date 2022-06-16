@@ -47,7 +47,7 @@ class Parser_mariposas{
     }
 public:
 
-    static map<string,field<rowvec>> get_data(int cortes = 6, int categories=10, float train_proportion=0.8, float validation_proportion=0.1, int label_length=4, bool pca=false){
+    static map<string,field<rowvec>> get_data(int cortes = 6, int categories=10, float train_proportion=0.8, float validation_proportion=0.1, int label_length=3, bool pca=false){
         string line, path = "../data/mariposas/"+ to_string(cortes);
         if (pca){
             path +="_cortes_pca/";
@@ -60,7 +60,7 @@ public:
         vector<rowvec> x_train, x_validation, x_test, y_train,y_validation, y_test;
         float test_proportion = (1 - train_proportion) - validation_proportion;
 
-        for(int it=0; it<categories; it++){
+        for(int it=1; it<=categories; it++){
             vector<string> file_names;
             int features, images = 0, i = 0, label;
             bool flag = true;
@@ -129,7 +129,7 @@ public:
 
             for(int k =0; k<y_test_class.n_elem;k++){
             y_test.push_back(y_test_class(k));
-        }
+            }
         }
 
         field<rowvec> temp_x_train(x_train.size());

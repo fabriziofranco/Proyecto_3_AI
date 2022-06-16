@@ -30,6 +30,16 @@ struct utils{
     }
 
     static field<mat> he_et_normal_distribution(field<mat> empty_weights){
+        double size = empty_weights.n_elem;
+        double fan_in = 0; double fan_out = 0;
+        double n_rows = 0, n_cols = 0;
+        double sd = 0; double mu = 0;
+        for (int i = 0; i < size;i++){
+            fan_in = empty_weights(i).n_rows;
+            fan_out = empty_weights(i).n_cols;
+            sd = sqrt(2/(fan_in));
+            empty_weights(i) = randn( fan_in, fan_out, distr_param(mu,sd));
+        }
         return empty_weights;
     }
 
