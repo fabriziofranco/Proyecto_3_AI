@@ -47,10 +47,14 @@ class Parser_mariposas{
     }
 public:
 
-    static map<string,field<rowvec>> get_data(int cortes = 6, int categories=10, float train_proportion=0.8, float validation_proportion=0.1, int label_length=3, bool pca=false){
+    static map<string,field<rowvec>> get_data(int cortes = 6, int categories=10, float train_proportion=0.8,
+    float validation_proportion=0.1, int label_length=3, bool pca=false, bool augmentation=false){
         string line, path = "../data/mariposas/"+ to_string(cortes);
         if (pca){
             path +="_cortes_pca/";
+        }
+        else if(augmentation){
+              path +="_cortes_augmentation/";
         }
         else{
             path +="_cortes/";
@@ -64,7 +68,14 @@ public:
             vector<string> file_names;
             int features, images = 0, i = 0, label;
             bool flag = true;
-            fstream file("../data/mariposas/paths.csv", ios::in);
+            fstream file;
+            if(augmentation){
+                file.open("../data/mariposas/paths_augmentation.csv", ios::in);
+            }
+            else{
+                file.open("../data/mariposas/paths.csv", ios::in);
+            }
+
             file.clear();
             file.seekg(0,ios::beg);
             while(getline(file,line)){
@@ -128,7 +139,7 @@ public:
             }
 
             for(int k =0; k<y_test_class.n_elem;k++){
-            y_test.push_back(y_test_class(k));
+                y_test.push_back(y_test_class(k));
             }
         }
 
