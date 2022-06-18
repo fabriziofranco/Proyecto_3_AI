@@ -1,7 +1,7 @@
 all: run clean P
 
 run:
-	g++ mlp.cpp -std=c++17 -o mlp.out -larmadillo -llapack -lstdc++fs
+	g++ -o mlp.out mlp.cpp -std=c++17 -larmadillo -llapack -lstdc++fs -fopenmp
 	./mlp.out
 
 clean:
