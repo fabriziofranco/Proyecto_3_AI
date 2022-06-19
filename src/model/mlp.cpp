@@ -177,7 +177,7 @@ public:
         this-> batch_size = size(X_train)[0];
         this->scalar_rate = learning_rate;
 
-        mat output, output_validation;
+        mat output, output_validation, output_train_completo;
 
         mat X_matrix = utils::from_field_to_mat(X_train);
         mat Y_matrix = utils::from_field_to_mat(Y_train);
@@ -214,13 +214,40 @@ public:
                 propagate_backward(X_matrix, Y_matrix);
                 iter++;
             }
+        }
+
+        else{
+            int iter = 0; double iter_error = 1;
+            double best_error = 1e10;
+            while(iter_error>error and iter<max_iter){
+                int pos  = round(generate_random_number(0,X_matrix.n_rows-1));
+                output_validation = forward_propagation(X_matrix_validation);
+                output_train_completo = forward_propagation(X_matrix);
+                output = forward_propagation(X_matrix.row(pos));
+
+                iter_error = metrics::save_error_and_acc(output_train_completo,Y_matrix,output_validation,Y_matrix_validation,
+                                                         path + "error_and_accuracy.csv");
+
+                if(iter_error < best_error){
+                    best_weights = this->weights;
+                    best_bias  = this->bias;
+                    best_error = iter_error;
+                }
+
+                if(iter_error<=error){
+                    break;
+                }
+
+                propagate_backward(X_matrix.row(pos), Y_matrix.row(pos));
+                iter++;
+            }
+        }
 
             this->weights = best_weights;
             this->bias = best_bias;
             
             this->weights.save(path + "weights.bin");
             this->bias.save(path + "bias.bin");
-
 
             output_validation = forward_propagation(X_matrix_validation);
             output = forward_propagation(X_matrix);
@@ -234,29 +261,6 @@ public:
             cout<<"Validation acc: ";
             metrics::print_accuracy(output_validation,Y_matrix_validation);
             return 0;
-        }
-
-        else{
-            // double error= 1;
-            // while(error>=epochs){
-            //     int pos  = round(generate_random_number(0,X_matrix.n_rows-1));
-            //     output = forward_propagation(X_matrix.row(pos));
-            //     output.print();
-            //     propagate_backward(X_matrix.row(pos), Y_matrix.row(pos));
-
-            //     output_validation = forward_propagation(X_matrix_validation);
-            //     output = forward_propagation(X_matrix);
-            //     error = metrics::save_error_and_acc(output,Y_matrix,output_validation,Y_matrix_validation,"prueba4.csv");
-            //     metrics::print_matriz_confusion(output,Y_matrix,"TRAIN");
-            //     metrics::print_matriz_confusion(output_validation,Y_matrix_validation,"VALIDATION");
-            // }
-
-
-            // cout.precision(3); cout.setf(ios::fixed);
-            // cout<<"Fit acc: ";
-            // metrics::print_accuracy(forward_propagation(X_matrix),Y_matrix);
-            return 0;
-        }
     }
 
     double predict(field<rowvec> X_test, field<rowvec> Y_test,string label="Test"){
